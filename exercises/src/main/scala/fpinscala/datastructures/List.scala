@@ -127,7 +127,32 @@ object List { // `List` companion object. Contains functions for creating and wo
   def reverse[A](l: List[A]): List[A] =
     foldLeft(l, Nil: List[A]) { (acc, current) => Cons(current, acc)}
 
-  def foldLeftViaFoldRight[A, B](l: List[A], z: B)(f: (B, A) => B): B = ???
+  // exercise 13
+  def foldLeftViaFoldRight[A, B](l: List[A], z: B)(f: (B, A) => B): B =
+    foldRight(reverse(l), z) { (a, b) => f(b, a) }
+
+  def foldLeftViaFoldRight1[A, B](l: List[A], z: B)(f: (B, A) => B): B = {
+    type BtoB = B => B
+
+    def innerIdent: BtoB = (b: B) => b
+
+    // at each of the fold step, create a new function for delayed evaluation, which,
+    // when applied, will combine the value.
+    def combinerDelayer: (A, BtoB) => BtoB =
+      (a: A, delayFunc: BtoB) => (b: B) => delayFunc(f(b, a))
+
+    def go: BtoB = foldRight(l, innerIdent)(combinerDelayer)
+
+    go(z)
+  }
+
+  // the simplified, not-so-readable one-liner
+  def foldLeftViaFoldRight2[A, B](l: List[A], z: B)(f: (B, A) => B): B =
+    (foldRight(l, (b: B) => b) { (a, g) => (b => g(f(b, a))) })(z)
+
+  def foldRightViaFoldLeft[A, B](l: List[A], z: B)(f: (A, B) => B): B =
+    foldLeft(l, (b: B) => b) { (g, a) => (b => g(f(a, b))) } apply z
+
 
   // exercise 14
   def append2[A](a1: List[A], a2: List[A]): List[A] =
