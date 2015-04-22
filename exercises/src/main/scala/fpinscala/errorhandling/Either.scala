@@ -7,8 +7,11 @@ sealed trait Either[+E,+A] {
   // exercise 7
   def map[B](f: A => B): Either[E, B] =
     this match {
+      // this Won't type check
       // case left: Left => left
-      // We need a new copy rather than the original reference here. It also won't type-check if return 'left'
+      // this can type-check
+      // case left: Left[E] => left
+      // We need a new copy rather than the original reference here.
       case Left(get) => Left(get)
       case Right(get) => Right(f(get))
   }
