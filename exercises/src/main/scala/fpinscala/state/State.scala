@@ -193,5 +193,44 @@ object State {
     go(s, ss, List[A]())
   }
 
-  def simulateMachine(inputs: List[Input]): State[Machine, (Int, Int)] = ???
+  def get[S]: State[S, S] = State { s => (s, s) }
+
+  def set[S](s: S): State[S, Unit] = State { _ => ((), s) }
+
+  def modify[S](f: S => S): State[S, Unit] = for {
+    s <- get
+    _ <- set(f(s))
+  } yield ()
+}
+
+object CandyMachine {
+  import State._
+
+  // exercise 11
+  def simulateMachine(inputs: List[Input]): State[Machine, (Int, Int)] = {
+    def updateMachine(m: Machine, input: Input): Machine = {
+      (input, m) match {
+        case (Coin, Machine(true, candies, coins)) if candies > 0 => Machine(false, candies, coins + 1)
+        case (Turn, Machine(false, candies, coins)) => Machine(true, candies - 1, coins)
+        case (Coin, Machine(false, _, _)) => m
+        case (Turn, Machine(true, _, _)) => m
+        case (_, Machine(_, candies, _)) if candies <= 0 => m
+      }
+    }
+
+    val actions: List[State[Machine, Unit]] = inputs map { input => modify((m: Machine) => updateMachine(m, input)) }
+
+    val finalMachine = sequence(actions)
+
+//    finalMachine flatMap { _ =>
+//      get map { m =>
+//        (m.candies, m.coins)
+//      }
+//    }
+
+    for {
+      _ <- finalMachine
+      m <- get
+    } yield (m.candies, m.coins)
+  }
 }
